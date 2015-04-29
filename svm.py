@@ -1,31 +1,24 @@
-""" Writing my first randomforest code.
-Author : AstroDave
-Date : 23rd September 2012
-Revised: 15 April 2014
-please see packages.python.org/milk/randomforests.html for more
 
-"""
 import pandas as pd
 import numpy as np
 import csv as csv
 import pylab as P
 from sklearn import preprocessing
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.ensemble import RandomForestClassifier
-
+from sklearn import svm
+from sklearn.linear_model import LogisticRegression
+import warnings
 ## Adapted from http://scikit-learn.org/stable/auto_examples/plot_learning_curve.html
 import matplotlib.pyplot as plt
 from sklearn.learning_curve import learning_curve
-
 from sklearn.metrics import roc_curve, auc
 from sklearn.cross_validation import train_test_split
 
-
+warnings.simplefilter('ignore', DeprecationWarning)
 
 #REGRESSION FOR SETTING MISSING VALUES
 def setMissingAges(df):
-    # Grab all the features that can be included in a Random Forest Regressor
-    age_df = df[['Age','Embarked', 'Parch', 'SibSp','Pclass']]
+    # Grab all the features that can be included in a Logistic Regressor
+    age_df = df[['Age', 'Embarked', 'Parch', 'SibSp', 'Pclass']]
     # Split into sets with known and unknown Age values
     knownAge = age_df.loc[ (df.Age.notnull()) ]
     unknownAge = age_df.loc[ (df.Age.isnull()) ]
@@ -34,10 +27,10 @@ def setMissingAges(df):
     # All the other values are stored in the feature array
     X = knownAge.values[:, 1::]
     # Create and fit a model
-    rtr = RandomForestRegressor(n_estimators=2000, n_jobs=-1)
-    rtr.fit(X, y)
+    logreg = LogisticRegression(C=1)
+    logreg.fit(X, y)
     # Use the fitted model to predict the missing values
-    predictedAges = rtr.predict(unknownAge.values[:, 1::])
+    predictedAges = logreg.predict(unknownAge.values[:, 1::])
     # Assign those predictions to the full data set
     df.loc[ (df.Age.isnull()), 'Age'] = predictedAges
     return df
@@ -93,6 +86,7 @@ train_df['Port*SibSp'] = train_df['Embarked']*train_df['SibSp']
 train_df['Port*Pclass'] = train_df['Embarked']*train_df['Pclass']
 train_df['Port*Fare'] = train_df['Embarked']*train_df['Fare']
 train_df['Port*SibSp*Gender'] = train_df['Embarked']*train_df['SibSp']*train_df['Gender']
+
 ###################################### TEST DATA ####################################################
 
 test_df = pd.read_csv('test.csv', header=0)        # Load the test file into a data frame
@@ -117,9 +111,6 @@ if len(test_df.Age[ test_df.Age.isnull() ]) > 0:
 '''
 setMissingAges(test_df)
 
-#FEATURE SCALING FOR TEST SET
-#test_df['Age'] = scaler.fit_transform(test_df['Age'])
-
 # All the missing Fares -> assume median of their respective class
 if len(test_df.Fare[ test_df.Fare.isnull() ]) > 0:
     median_fare = np.zeros(3)
@@ -127,6 +118,10 @@ if len(test_df.Fare[ test_df.Fare.isnull() ]) > 0:
         median_fare[f] = test_df[test_df.Pclass == f+1]['Fare'].dropna().median()
     for f in range(0,3):                                              # loop 0 to 2
         test_df.loc[ (test_df.Fare.isnull()) & (test_df.Pclass == f+1), 'Fare'] = median_fare[f]
+
+#FEATURE SCALING FOR TEST SET
+#test_df['Age'] = scaler.fit_transform(test_df['Age'])
+test_df['Fare'] = scaler.fit_transform(test_df['Fare'])
 
 # Collect the test data's PassengerIds before dropping it
 ids = test_df['PassengerId'].values
@@ -154,24 +149,23 @@ test_df['Port*SibSp*Gender'] = test_df['Embarked']*test_df['SibSp']*test_df['Gen
 # Convert back to a numpy array
 train_data = train_df.values
 test_data = test_df.values
+train_df
 
 print 'Training...'
-forest = RandomForestClassifier(n_estimators=100)
-forest = forest.fit( train_data[0::, 1::], train_data[0::, 0])
+clf = svm.SVC()
+clf = clf.fit(train_data[0::, 1::], train_data[0::, 0])
 
 print 'Predicting...'
-output = forest.predict(test_data).astype(int)
+output = clf.predict(test_data).astype(int)
 
-predictions_file = open("myfirstforest.csv", "wb")
+predictions_file = open("svm.csv", "wb")
 open_file_object = csv.writer(predictions_file)
 open_file_object.writerow(["PassengerId","Survived"])
 open_file_object.writerows(zip(ids, output))
 predictions_file.close()
 print 'Done.'
 
-#train_df.hist()
 P.show()
-
 
 # assume classifier and training data is prepared...
 features_list = train_df.columns.values[1::]
@@ -179,7 +173,7 @@ X = train_df.values[:, 1::]
 y = train_df.values[:, 0]
 
 train_sizes, train_scores, test_scores = learning_curve(
-        forest, X, y, cv=10, n_jobs=-1, train_sizes=np.linspace(.1, 1., 10), verbose=0)
+        clf, X, y, cv=10, n_jobs=-1, train_sizes=np.linspace(.1, 1., 10), verbose=0)
 
 train_scores_mean = np.mean(train_scores, axis=1)
 train_scores_std = np.std(train_scores, axis=1)
@@ -187,7 +181,7 @@ test_scores_mean = np.mean(test_scores, axis=1)
 test_scores_std = np.std(test_scores, axis=1)
 
 plt.figure()
-plt.title("RandomForestClassifier")
+plt.title("SVM")
 plt.legend(loc="best")
 plt.xlabel("Training examples")
 plt.ylabel("Score")
@@ -210,12 +204,17 @@ plt.draw()
 plt.show()
 plt.gca().invert_yaxis()
 
+# Draw the plot and reset the y-axis
+plt.draw()
+plt.show()
+plt.gca().invert_yaxis()
+
 # shuffle and split training and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.25)
-forest.fit(X_train, y_train)
+clf.fit(X_train, y_train)
 
 # Determine the false positive and true positive rates
-fpr, tpr, _ = roc_curve(y_test, forest.predict_proba(X_test)[:,1])
+fpr, tpr, _ = roc_curve(y_test, clf.predict_proba(X_test)[:,1])
 
 # Calculate the AUC
 roc_auc = auc(fpr, tpr)

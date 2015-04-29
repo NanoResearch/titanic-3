@@ -20,7 +20,7 @@ data = np.array(data)                       # Then convert from a list to an arr
 # In order to analyse the price column I need to bin up that data
 # here are my binning parameters, the problem we face is some of the fares are very large
 # So we can either have a lot of bins with nothing in them or we can just lose some
-# information by just considering that anythng over 39 is simply in the last bin.
+# information by just considering that anything over 39 is simply in the last bin.
 # So we add a ceiling
 fare_ceiling = 40
 # then modify the data in the Fare column to = 39, if it is greater or equal to the ceiling

@@ -1,22 +1,22 @@
-""" This simple code is designed to teach a basic user to read in the files in python, simply find what proportion of males and females survived and make a predictive model based on this
-Author : AstroDave
+""" This simple code is designed to teach a basic user to read in the files in python, simply find what proportion of
+males and females survived and make a predictive model based on this.
+This program predicts a person as survived for females and died for males
+Author : AstroDave (and slightly modified by Kunal Vyas)
 Date : 18 September 2012
-Revised: 28 March 2014
-
+Revised: 30 April 2014
+Used and modified by Kluez : March - May 2015
 """
-
 
 import csv as csv
 import numpy as np
 
 csv_file_object = csv.reader(open('train.csv', 'rb')) 	# Load in the csv file
 header = csv_file_object.next() 						# Skip the fist line as it is a header
-data=[] 												# Create a variable to hold the data
+data = [] 												# Create a variable to hold the data
 
 for row in csv_file_object: 							# Skip through each row in the csv file,
     data.append(row[0:]) 								# adding each row to the data variable
 data = np.array(data) 									# Then convert from a list to an array.
-
 # Now I have an array of 12 columns and 891 rows
 # I can access any element I want, so the entire first column would
 # be data[0::,0].astype(np.float) -- This means all of the rows (from start to end), in column 0
@@ -24,21 +24,21 @@ data = np.array(data) 									# Then convert from a list to an array.
 # when appending the rows, python thought it was a string - so needed to convert
 
 # Set some variables
-number_passengers = np.size(data[0::,1].astype(np.float))
-number_survived = np.sum(data[0::,1].astype(np.float))
+number_passengers = np.size(data[0::, 1].astype(np.float))  # astype casts to another data type
+number_survived = np.sum(data[0::, 1].astype(np.float))
 proportion_survivors = number_survived / number_passengers
 
-# I can now find the stats of all the women on board,
-# by making an array that lists True/False whether each row is female
+# I can now find the stats of all the women on board by making an array that lists True/False whether each row is female
 women_only_stats = data[0::,4] == "female" 	# This finds where all the women are
-men_only_stats = data[0::,4] != "female" 	# This finds where all the men are (note != means 'not equal')
+                                            # 1D Array of True False
+men_only_stats = data[0::,4] == "male" 	# This finds where all the men are (note != means 'not equal')
 
 # I can now filter the whole data, to find statistics for just women, by just placing
 # women_only_stats as a "mask" on my full data -- Use it in place of the '0::' part of the array index.
 # You can test it by placing it there, and requesting column index [4], and the output should all read 'female'
 # e.g. try typing this:   data[women_only_stats,4]
-women_onboard = data[women_only_stats,1].astype(np.float)
-men_onboard = data[men_only_stats,1].astype(np.float)
+women_onboard = data[women_only_stats, 1].astype(np.float)   # An array of 0/1 values extracted from women_only_stats
+men_onboard = data[men_only_stats, 1].astype(np.float)
 
 # and derive some statistics about them
 proportion_women_survived = np.sum(women_onboard) / np.size(women_onboard)
