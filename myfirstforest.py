@@ -12,15 +12,11 @@ import pylab as P
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
-
 ## Adapted from http://scikit-learn.org/stable/auto_examples/plot_learning_curve.html
 import matplotlib.pyplot as plt
 from sklearn.learning_curve import learning_curve
-
 from sklearn.metrics import roc_curve, auc
 from sklearn.cross_validation import train_test_split
-
-
 
 #REGRESSION FOR SETTING MISSING VALUES
 def setMissingAges(df):
@@ -42,7 +38,7 @@ def setMissingAges(df):
     df.loc[ (df.Age.isnull()), 'Age'] = predictedAges
     return df
 
-# StandardScaler will subtract the mean from each value then scale to the unit variance
+# Standard Scaler will subtract the mean from each value then scale to the unit variance
 scaler = preprocessing.StandardScaler()
 
 # Data cleanup
@@ -65,20 +61,17 @@ if len(train_df.Embarked[ train_df.Embarked.isnull() ]) > 0:
 Ports = list(enumerate(np.unique(train_df['Embarked'])))    # determine all values of Embarked,
 Ports_dict = { name : i for i, name in Ports }              # set up a dictionary in the form  Ports : index
 train_df.Embarked = train_df.Embarked.map( lambda x: Ports_dict[x]).astype(int)     # Convert all Embark strings to int
-'''
+
 # All the ages with no data -> make the median of all Ages
 median_age = train_df['Age'].dropna().median()
 if len(train_df.Age[ train_df.Age.isnull() ]) > 0:
     train_df.loc[ (train_df.Age.isnull()), 'Age'] = median_age
-'''
-setMissingAges(train_df)
+
+#setMissingAges(train_df)
 
 #FEATURE SCALING FOR TRAINING SET
-#train_df['Age'] = scaler.fit_transform(train_df['Age'])
+train_df['Fare'] = scaler.fit_transform(train_df['Fare'])
 
-# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1)
-#train_df = train_df.rename(columns = {'Age_scaled':'Age'}, inplace=True)
 #lin----------------
 train_df['SibSp*Gender'] = train_df['SibSp']*train_df['Gender']
 train_df['SibSp*Fare'] = train_df['SibSp']*train_df['Fare']
@@ -93,8 +86,11 @@ train_df['Port*SibSp'] = train_df['Embarked']*train_df['SibSp']
 train_df['Port*Pclass'] = train_df['Embarked']*train_df['Pclass']
 train_df['Port*Fare'] = train_df['Embarked']*train_df['Fare']
 train_df['Port*SibSp*Gender'] = train_df['Embarked']*train_df['SibSp']*train_df['Gender']
-###################################### TEST DATA ####################################################
 
+###################################### TEST DATA ####################################################
+# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
+train_df = train_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1)
+#train_df = train_df.rename(columns = {'Age_scaled':'Age'}, inplace=True)
 test_df = pd.read_csv('test.csv', header=0)        # Load the test file into a data frame
 
 # I need to do the same with the test data now, so that the columns are the same as the training data
@@ -109,16 +105,16 @@ if len(test_df.Embarked[ test_df.Embarked.isnull() ]) > 0:
 # Again convert all Embarked strings to int
 test_df.Embarked = test_df.Embarked.map( lambda x: Ports_dict[x]).astype(int)
 
-'''
+
 # All the ages with no data -> make the median of all Ages
 median_age = test_df['Age'].dropna().median()
 if len(test_df.Age[ test_df.Age.isnull() ]) > 0:
     test_df.loc[ (test_df.Age.isnull()), 'Age'] = median_age
-'''
-setMissingAges(test_df)
+
+#setMissingAges(test_df)
 
 #FEATURE SCALING FOR TEST SET
-#test_df['Age'] = scaler.fit_transform(test_df['Age'])
+#test_df['Fare'] = scaler.fit_transform(test_df['Fare'])
 
 # All the missing Fares -> assume median of their respective class
 if len(test_df.Fare[ test_df.Fare.isnull() ]) > 0:
@@ -128,10 +124,6 @@ if len(test_df.Fare[ test_df.Fare.isnull() ]) > 0:
     for f in range(0,3):                                              # loop 0 to 2
         test_df.loc[ (test_df.Fare.isnull()) & (test_df.Pclass == f+1), 'Fare'] = median_fare[f]
 
-# Collect the test data's PassengerIds before dropping it
-ids = test_df['PassengerId'].values
-# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
-test_df = test_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1)
 #lin--------------------
 test_df['SibSp*Gender'] = test_df['SibSp']*test_df['Gender']
 test_df['SibSp*Fare'] = test_df['SibSp']*test_df['Fare']
@@ -141,7 +133,6 @@ test_df['SibSp^2*Pclass'] = test_df['SibSp']*test_df['SibSp']*test_df['Pclass']
 test_df['SibSp^2*Age'] = test_df['SibSp']*test_df['SibSp']*test_df['Age']
 test_df['Gender*Fare'] = test_df['Gender']*test_df['Fare']
 test_df['Age*Fare'] = test_df['Age']*test_df['Fare']
-
 test_df['Port*Gender'] = test_df['Embarked']*test_df['Gender']
 test_df['Port*SibSp'] = test_df['Embarked']*test_df['SibSp']
 test_df['Port*Pclass'] = test_df['Embarked']*test_df['Pclass']
@@ -149,6 +140,10 @@ test_df['Port*Fare'] = test_df['Embarked']*test_df['Fare']
 test_df['Port*SibSp*Gender'] = test_df['Embarked']*test_df['SibSp']*test_df['Gender']
 #----------------------
 
+# Collect the test data's PassengerIds before dropping it
+ids = test_df['PassengerId'].values
+# Remove the Name column, Cabin, Ticket, and Sex (since I copied and filled it to Gender)
+test_df = test_df.drop(['Name', 'Sex', 'Ticket', 'Cabin', 'PassengerId'], axis=1)
 
 # The data is now ready to go. So lets fit to the train, then predict to the test!
 # Convert back to a numpy array
@@ -171,7 +166,6 @@ print 'Done.'
 
 #train_df.hist()
 P.show()
-
 
 # assume classifier and training data is prepared...
 features_list = train_df.columns.values[1::]
